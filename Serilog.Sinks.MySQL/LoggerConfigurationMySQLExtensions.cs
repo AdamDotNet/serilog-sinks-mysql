@@ -1,13 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
+﻿// Copyright (c) Adam Venezia. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See LICENSE in the project root for license information.
+// Modified source from https://github.com/b00ted/serilog-sinks-postgresql to connect to MySQL instead of PostgreSQL.
+
 using Serilog.Configuration;
 using Serilog.Core;
 using Serilog.Events;
-using Serilog.Sinks.PostgreSQL;
+using Serilog.Sinks.MySQL;
+using System;
+using System.Collections.Generic;
 
 namespace Serilog
 {
-    public static class LoggerConfigurationPostgreSQLExtensions
+    public static class LoggerConfigurationMySQLExtensions
     {
         /// <summary>
         /// Default time to wait between checking for event batches.
@@ -15,7 +19,7 @@ namespace Serilog
         public static readonly TimeSpan DefaultPeriod = TimeSpan.FromSeconds(5);
 
         /// <summary>
-        /// Adds a sink which writes to PostgreSQL table
+        /// Adds a sink which writes to MySQL table
         /// </summary>
         /// <param name="sinkConfiguration">The logger configuration.</param>
         /// <param name="connectionString">The connection string to the database where to store the events.</param>
@@ -27,21 +31,17 @@ namespace Serilog
         /// <param name="batchSizeLimit">The maximum number of events to include to single batch.</param>
         /// <param name="queueLimit">Maximum number of events in the queue.</param>
         /// <param name="levelSwitch">A switch allowing the pass-through minimum level to be changed at runtime.</param>
-        /// <param name="useCopy">If true inserts data via COPY command, otherwise uses INSERT INTO satement </param>
-        /// <param name="schemaName">Schema name</param>
         /// <returns>Logger configuration, allowing configuration to continue.</returns>
-        public static LoggerConfiguration PostgreSQL(this LoggerSinkConfiguration sinkConfiguration,
+        public static LoggerConfiguration MySQL(this LoggerSinkConfiguration sinkConfiguration,
             string connectionString,
             string tableName,
             IDictionary<string, ColumnWriterBase> columnOptions = null,
             LogEventLevel restrictedToMinimumLevel = LevelAlias.Minimum,
             TimeSpan? period = null,
             IFormatProvider formatProvider = null,
-            int batchSizeLimit = PostgreSQLSink.DefaultBatchSizeLimit,
-            int queueLimit = PostgreSQLSink.DefaultQueueLimit,
-            LoggingLevelSwitch levelSwitch = null,
-            bool useCopy = true,
-            string schemaName = "")
+            int batchSizeLimit = MySQLSink.DefaultBatchSizeLimit,
+            int queueLimit = MySQLSink.DefaultQueueLimit,
+            LoggingLevelSwitch levelSwitch = null)
         {
             if (sinkConfiguration == null)
             {
@@ -51,16 +51,14 @@ namespace Serilog
 
             period = period ?? DefaultPeriod;
 
-            return sinkConfiguration.Sink(new PostgreSQLSink(connectionString,
+            return sinkConfiguration.Sink(new MySQLSink(connectionString,
                                                                 tableName,
                                                                 period.Value,
                                                                 formatProvider,
                                                                 columnOptions,
                                                                 batchSizeLimit,
-                                                                queueLimit,
-                                                                useCopy,
-                                                                schemaName
-                                                                ), restrictedToMinimumLevel, levelSwitch);
+                                                                queueLimit),
+                                                            restrictedToMinimumLevel, levelSwitch);
         }
 
     }

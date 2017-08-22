@@ -1,19 +1,23 @@
-﻿using System;
-using System.Text;
-using NpgsqlTypes;
+﻿// Copyright (c) Adam Venezia. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See LICENSE in the project root for license information.
+// Modified source from https://github.com/b00ted/serilog-sinks-postgresql to connect to MySQL instead of PostgreSQL.
+
 using Serilog.Events;
 using Serilog.Formatting.Json;
+using System;
+using System.Data;
+using System.Text;
 
-namespace Serilog.Sinks.PostgreSQL
+namespace Serilog.Sinks.MySQL
 {
     public abstract class ColumnWriterBase
     {
         /// <summary>
         /// Column type
         /// </summary>
-        public NpgsqlDbType DbType { get; }
+        public DbType DbType { get; }
 
-        protected ColumnWriterBase(NpgsqlDbType dbType)
+        protected ColumnWriterBase(DbType dbType)
         {
             DbType = dbType;
         }
@@ -25,7 +29,6 @@ namespace Serilog.Sinks.PostgreSQL
         /// <param name="formatProvider"></param>
         /// <returns></returns>
         public abstract object GetValue(LogEvent logEvent, IFormatProvider formatProvider = null);
-
     }
 
     /// <summary>
@@ -33,9 +36,8 @@ namespace Serilog.Sinks.PostgreSQL
     /// </summary>
     public class TimestampColumnWriter : ColumnWriterBase
     {
-        public TimestampColumnWriter(NpgsqlDbType dbType = NpgsqlDbType.Timestamp) : base(dbType)
-        {
-        }
+        public TimestampColumnWriter(DbType dbType = DbType.DateTimeOffset)
+            : base(dbType) { }
 
         public override object GetValue(LogEvent logEvent, IFormatProvider formatProvider = null)
         {
@@ -48,9 +50,8 @@ namespace Serilog.Sinks.PostgreSQL
     /// </summary>
     public class RenderedMessageColumnWriter : ColumnWriterBase
     {
-        public RenderedMessageColumnWriter(NpgsqlDbType dbType = NpgsqlDbType.Text) : base(dbType)
-        {
-        }
+        public RenderedMessageColumnWriter(DbType dbType = DbType.String)
+            : base(dbType) { }
 
         public override object GetValue(LogEvent logEvent, IFormatProvider formatProvider = null)
         {
@@ -63,9 +64,8 @@ namespace Serilog.Sinks.PostgreSQL
     /// </summary>
     public class MessageTemplateColumnWriter : ColumnWriterBase
     {
-        public MessageTemplateColumnWriter(NpgsqlDbType dbType = NpgsqlDbType.Text) : base(dbType)
-        {
-        }
+        public MessageTemplateColumnWriter(DbType dbType = DbType.String)
+            : base(dbType) { }
 
         public override object GetValue(LogEvent logEvent, IFormatProvider formatProvider = null)
         {
@@ -74,36 +74,40 @@ namespace Serilog.Sinks.PostgreSQL
     }
 
     /// <summary>
-    /// Writes log level
+    /// Writes log level as a number
     /// </summary>
-    public class LevelColumnWriter : ColumnWriterBase
+    public class LevelValueColumnWriter : ColumnWriterBase
     {
-        private readonly bool _renderAsText;
-
-        public LevelColumnWriter(bool renderAsText = false, NpgsqlDbType dbType = NpgsqlDbType.Integer) : base(dbType)
-        {
-            _renderAsText = renderAsText;
-        }
+        public LevelValueColumnWriter(DbType dbType = DbType.Int32)
+            : base(dbType) { }
 
         public override object GetValue(LogEvent logEvent, IFormatProvider formatProvider = null)
         {
-            if (_renderAsText)
-            {
-                return logEvent.Level.ToString();
-            }
-
             return (int)logEvent.Level;
         }
     }
 
     /// <summary>
-    /// Writes exception (just it ToString())
+    /// Writes log level as text
+    /// </summary>
+    public class LevelTextColumnWriter : ColumnWriterBase
+    {
+        public LevelTextColumnWriter(DbType dbType = DbType.String)
+            : base(dbType) { }
+
+        public override object GetValue(LogEvent logEvent, IFormatProvider formatProvider = null)
+        {
+            return logEvent.Level.ToString();
+        }
+    }
+
+    /// <summary>
+    /// Writes exception (just calls ToString())
     /// </summary>
     public class ExceptionColumnWriter : ColumnWriterBase
     {
-        public ExceptionColumnWriter(NpgsqlDbType dbType = NpgsqlDbType.Text) : base(dbType)
-        {
-        }
+        public ExceptionColumnWriter(DbType dbType = DbType.String)
+            : base(dbType) { }
 
         public override object GetValue(LogEvent logEvent, IFormatProvider formatProvider = null)
         {
@@ -116,9 +120,8 @@ namespace Serilog.Sinks.PostgreSQL
     /// </summary>
     public class PropertiesColumnWriter : ColumnWriterBase
     {
-        public PropertiesColumnWriter(NpgsqlDbType dbType = NpgsqlDbType.Jsonb) : base(dbType)
-        {
-        }
+        public PropertiesColumnWriter(DbType dbType = DbType.String)
+            : base(dbType) { }
 
         public override object GetValue(LogEvent logEvent, IFormatProvider formatProvider = null)
         {
@@ -160,9 +163,8 @@ namespace Serilog.Sinks.PostgreSQL
     /// </summary>
     public class LogEventSerializedColumnWriter : ColumnWriterBase
     {
-        public LogEventSerializedColumnWriter(NpgsqlDbType dbType = NpgsqlDbType.Jsonb) : base(dbType)
-        {
-        }
+        public LogEventSerializedColumnWriter(DbType dbType = DbType.String)
+            : base(dbType) { }
 
         public override object GetValue(LogEvent logEvent, IFormatProvider formatProvider = null)
         {
@@ -190,7 +192,8 @@ namespace Serilog.Sinks.PostgreSQL
         public string Format { get; }
 
         public SinglePropertyColumnWriter(string propertyName, PropertyWriteMethod writeMethod = PropertyWriteMethod.ToString, 
-                                            NpgsqlDbType dbType = NpgsqlDbType.Text, string format = null) : base(dbType)
+                                            DbType dbType = DbType.String, string format = null)
+            : base(dbType)
         {
             Name = propertyName;
             WriteMethod = writeMethod;
